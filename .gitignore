@@ -46,6 +46,9 @@ next-env.d.ts
 # generated files
 /src/generated/prisma
 
+# playwright generated files
+.playwright-mcp
+
 # database
 /prisma/dev.db
 /prisma/dev.db-journal
