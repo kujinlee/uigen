@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Plus, LogOut, FolderOpen, ChevronDown } from "lucide-react";
+import { Plus, LogOut, FolderOpen, ChevronDown, Download } from "lucide-react";
 import { AuthDialog } from "@/components/auth/AuthDialog";
 import { signOut } from "@/actions";
 import { getProjects } from "@/actions/get-projects";
@@ -45,6 +45,7 @@ export function HeaderActions({ user, projectId }: HeaderActionsProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   // Load projects initially
   useEffect(() => {
@@ -90,6 +91,40 @@ export function HeaderActions({ user, projectId }: HeaderActionsProps) {
       data: {},
     });
     router.push(`/${project.id}`);
+  };
+
+  const handleExportZip = async () => {
+    if (!projectId) return;
+
+    try {
+      setIsExporting(true);
+      const response = await fetch(`/api/projects/${projectId}/export`, {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to export project");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const safeName = (currentProject?.name || "uigen-project")
+        .replace(/[^a-z0-9-_]+/gi, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase();
+      link.href = url;
+      link.download = `${safeName || "uigen-project"}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert("Could not export project as ZIP. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (!user) {
@@ -158,6 +193,16 @@ export function HeaderActions({ user, projectId }: HeaderActionsProps) {
       <Button className="flex items-center gap-2 h-8" onClick={handleNewDesign}>
         <Plus className="h-4 w-4" />
         New Design
+      </Button>
+
+      <Button
+        variant="outline"
+        className="flex items-center gap-2 h-8"
+        onClick={handleExportZip}
+        disabled={!projectId || isExporting}
+      >
+        <Download className="h-4 w-4" />
+        {isExporting ? "Exporting..." : "Export ZIP"}
       </Button>
 
       <Button
